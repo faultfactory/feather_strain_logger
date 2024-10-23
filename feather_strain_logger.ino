@@ -911,7 +911,9 @@ void loop(void) {
   } else {
     Serial.println(F("Invalid entry"));
   }
+  //I intend to add the button here
 }
 #else  // __AVR__
 #error This program is only for AVR.
 #endif  // __AVR__
+
