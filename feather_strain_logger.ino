@@ -880,13 +880,13 @@ void loop(void) {
   printUnusedStack();
   // Read any Serial data.
   clearSerialInput();
-  Serial.println();
-  Serial.println(F("type:"));
-  Serial.println(F("b - open existing bin file"));
-  Serial.println(F("c - convert file to csv"));
-  Serial.println(F("l - list files"));
-  Serial.println(F("p - print data to Serial"));
-  Serial.println(F("r - record ADC data"));
+  // Serial.println();
+  // Serial.println(F("type:"));
+  // Serial.println(F("b - open existing bin file"));
+  // Serial.println(F("c - convert file to csv"));
+  // Serial.println(F("l - list files"));
+  // Serial.println(F("p - print data to Serial"));
+  // Serial.println(F("r - record ADC data"));
 
   // while(!Serial.available()) {
   //   yield();
@@ -918,7 +918,10 @@ void loop(void) {
   // }
 
   static bool isLogging = false;
-
+  Serial.println(F("Waiting for switch to start logging"))
+  while(digitalRead(BUTTON_PIN) == HIGH) {
+    yield();
+  }
   if(digitalRead(BUTTON_PIN) == LOW) {
     if(!isLogging) {
       Serial.println(F("Button pressed. Logging started."));
