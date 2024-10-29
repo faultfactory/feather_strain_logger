@@ -65,6 +65,9 @@ const int8_t WRITE_LED_PIN = 8;
 // SD chip select pin.
 const uint8_t SD_CS_PIN = 4;
 const uint8_t DIGIPOT_CS_PIN = 10;
+//Connecting a button to log data
+const int BUTTON_PIN = 3;
+
 //------------------------------------------------------------------------------
 // Setup Digipot for gain
 MAX5481 DPOT(DIGIPOT_CS_PIN);
@@ -869,6 +872,10 @@ void setup(void) {
   // Set callback
   FsDateTime::setCallback(dateTime);
 #endif  // USE_RTC
+
+//Button Setup
+pinMode(BUTTON_PIN, INPUT);
+
 }
 //------------------------------------------------------------------------------
 void loop(void) {
@@ -911,7 +918,23 @@ void loop(void) {
   } else {
     Serial.println(F("Invalid entry"));
   }
-  //I intend to add the button here
+
+  static bool isLogging = false;
+
+  if(digitalRead(BUTTON_PIN) == LOW) {
+    if(!isLogging) {
+      Serial.println(F("Button pressed. Logging started."));
+      createBinFile();
+      isLogging = true;
+    }
+    logData();
+  }
+  else {
+    if(isLogging) {
+      Serial.println(F("Button released. Logging stopped."));
+      isLogging = false;
+    }
+  }
 }
 #else  // __AVR__
 #error This program is only for AVR.
