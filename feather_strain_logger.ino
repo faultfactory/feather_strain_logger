@@ -807,6 +807,17 @@ void printData() {
   Serial.println(F("Done"));
 }
 //------------------------------------------------------------------------------
+// Print data file to Serial
+void monitorA0Pin() {
+  Serial.println(F("Printing output of A0 ADC every 10ms"));
+  Serial.println(F("Send any serial input to stop"));
+  while (!Serial.available())
+  {
+    Serial.println(analogRead(0));
+  }
+  Serial.println(F("Done"));
+}
+//------------------------------------------------------------------------------
 bool serialReadLine(char* str, size_t size) {
   size_t n = 0;
   while(!Serial.available()) {
@@ -885,37 +896,10 @@ void loop(void) {
   Serial.println(F("b - open existing bin file"));
   Serial.println(F("c - convert file to csv"));
   Serial.println(F("l - list files"));
-  Serial.println(F("p - print data to Serial"));
+  Serial.println(F("p - print binary data to Serial"));
+  Serial.println(F("m - monitor A0 pin data"));
   Serial.println(F("Without serial input, the device will wait for switch input."));
 
-  // while(!Serial.available()) {
-  //   yield();
-  // }
-  // char c = tolower(Serial.read());
-  // Serial.println();
-  // if (ERROR_LED_PIN >= 0) {
-  //   digitalWrite(ERROR_LED_PIN, LOW);
-  // }
-  // // Read any Serial data.
-  // clearSerialInput();
-
-  // if (c == 'b') {
-  //   openBinFile();
-  // } else if (c == 'c') {
-  //   if (createCsvFile()) {
-  //     binaryToCsv();
-  //   }
-  // } else if (c == 'l') {
-  //   Serial.println(F("ls:"));
-  //   sd.ls(&Serial, LS_DATE | LS_SIZE);
-  // } else if (c == 'p') {
-  //   printData();
-  // } else if (c == 'r') {
-  //   createBinFile();
-  //   logData();
-  // } else {
-  //   Serial.println(F("Invalid entry"));
-  // }
 
   Serial.println(F("Waiting for switch to start logging"));
   while((digitalRead(BUTTON_PIN) == HIGH) && !Serial.available()) {
@@ -925,6 +909,35 @@ void loop(void) {
     createBinFile();
     logData();
   }
+  char c = tolower(Serial.read());
+  Serial.println();
+  if (ERROR_LED_PIN >= 0) {
+    digitalWrite(ERROR_LED_PIN, LOW);
+  }
+  // Read any Serial data.
+  clearSerialInput();
+  if (c == 'b') {
+    openBinFile();
+  } else if (c == 'c') {
+    if (createCsvFile()) {
+      binaryToCsv();
+    }
+  } else if (c == 'l') {
+    Serial.println(F("ls:"));
+    sd.ls(&Serial, LS_DATE | LS_SIZE);
+  } else if (c == 'p') {
+    printData();
+  } else if (c == 'm') {
+    monitorA0Pin();
+  } else if (c == 'r') {
+    createBinFile();
+    logData();
+  } else {
+    Serial.println(F("Invalid entry"));
+  }
+
+
+
 }
 #else  // __AVR__
 #error This program is only for AVR.
