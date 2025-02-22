@@ -76,7 +76,7 @@ MAX5481 DPOT(DIGIPOT_CS_PIN);
 //------------------------------------------------------------------------------
 // Analog pin number list for a sample.  Pins may be in any order and pin
 // numbers may be repeated.
-const uint8_t PIN_LIST[] = {0, 1, 2, 3, 4};
+const uint8_t PIN_LIST[] = {18};
 //------------------------------------------------------------------------------
 // Sample rate in samples per second.
 const float SAMPLE_RATE = 5000;  // Must be 0.25 or greater.
@@ -918,7 +918,7 @@ void loop(void) {
   // }
 
   static bool isLogging = false;
-  Serial.println(F("Waiting for switch to start logging"))
+  Serial.println(F("Waiting for switch to start logging"));
   while(digitalRead(BUTTON_PIN) == HIGH) {
     yield();
   }
