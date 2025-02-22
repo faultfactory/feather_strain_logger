@@ -719,7 +719,7 @@ void logData() {
     if (timerError) {
       error("Missed timer event - rate too high");
     }
-    if (Serial.available()) {
+   if(digitalRead(BUTTON_PIN) == HIGH) {
       // Stop ISR interrupts.
       isrStop = true;
     }
