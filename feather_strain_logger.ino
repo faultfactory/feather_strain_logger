@@ -663,7 +663,7 @@ void logData() {
   // Initialize all blocks to save ISR overhead.
   memset(fifoBuffer, 0, sizeof(fifoBuffer));
 
-  Serial.println(F("Logging - type any character to stop"));
+  Serial.println(F("Logging - use switch to stop"));
   // Wait for Serial Idle.
   Serial.flush();
   delay(10);
@@ -880,13 +880,13 @@ void loop(void) {
   printUnusedStack();
   // Read any Serial data.
   clearSerialInput();
-  // Serial.println();
-  // Serial.println(F("type:"));
-  // Serial.println(F("b - open existing bin file"));
-  // Serial.println(F("c - convert file to csv"));
-  // Serial.println(F("l - list files"));
-  // Serial.println(F("p - print data to Serial"));
-  // Serial.println(F("r - record ADC data"));
+  Serial.println();
+  Serial.println(F("type:"));
+  Serial.println(F("b - open existing bin file"));
+  Serial.println(F("c - convert file to csv"));
+  Serial.println(F("l - list files"));
+  Serial.println(F("p - print data to Serial"));
+  Serial.println(F("Without serial input, the device will wait for switch input."));
 
   // while(!Serial.available()) {
   //   yield();
@@ -917,24 +917,13 @@ void loop(void) {
   //   Serial.println(F("Invalid entry"));
   // }
 
-  static bool isLogging = false;
   Serial.println(F("Waiting for switch to start logging"));
-  while(digitalRead(BUTTON_PIN) == HIGH) {
-    yield();
+  while((digitalRead(BUTTON_PIN) == HIGH) && !Serial.available()) {
   }
   if(digitalRead(BUTTON_PIN) == LOW) {
-    if(!isLogging) {
-      Serial.println(F("Button pressed. Logging started."));
-      createBinFile();
-      isLogging = true;
-    }
+    Serial.println(F("Button pressed. Logging started."));
+    createBinFile();
     logData();
-  }
-  else {
-    if(isLogging) {
-      Serial.println(F("Button released. Logging stopped."));
-      isLogging = false;
-    }
   }
 }
 #else  // __AVR__
