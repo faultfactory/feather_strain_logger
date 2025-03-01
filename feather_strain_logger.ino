@@ -909,31 +909,34 @@ void loop(void) {
     createBinFile();
     logData();
   }
-  char c = tolower(Serial.read());
-  Serial.println();
-  if (ERROR_LED_PIN >= 0) {
-    digitalWrite(ERROR_LED_PIN, LOW);
-  }
-  // Read any Serial data.
-  clearSerialInput();
-  if (c == 'b') {
-    openBinFile();
-  } else if (c == 'c') {
-    if (createCsvFile()) {
-      binaryToCsv();
+  else
+  {
+    char c = tolower(Serial.read());
+    Serial.println();
+    if (ERROR_LED_PIN >= 0) {
+      digitalWrite(ERROR_LED_PIN, LOW);
     }
-  } else if (c == 'l') {
-    Serial.println(F("ls:"));
-    sd.ls(&Serial, LS_DATE | LS_SIZE);
-  } else if (c == 'p') {
-    printData();
-  } else if (c == 'm') {
-    monitorA0Pin();
-  } else if (c == 'r') {
-    createBinFile();
-    logData();
-  } else {
-    Serial.println(F("Invalid entry"));
+    // Read any Serial data.
+    clearSerialInput();
+    if (c == 'b') {
+      openBinFile();
+    } else if (c == 'c') {
+      if (createCsvFile()) {
+        binaryToCsv();
+      }
+    } else if (c == 'l') {
+      Serial.println(F("ls:"));
+      sd.ls(&Serial, LS_DATE | LS_SIZE);
+    } else if (c == 'p') {
+      printData();
+    } else if (c == 'm') {
+      monitorA0Pin();
+    } else if (c == 'r') {
+      createBinFile();
+      logData();
+    } else {
+      Serial.println(F("Invalid entry"));
+    }
   }
 
 
