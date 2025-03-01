@@ -71,7 +71,10 @@ const int BUTTON_PIN = 3;
 //------------------------------------------------------------------------------
 // Setup Digipot for gain
 MAX5481 DPOT(DIGIPOT_CS_PIN);
-
+// ********GAIN VALUE FOR STRAIN GAGE AMPLIFIER *************
+// This sets the 0-10k (approximately) value of the digital potentiometer.
+// Valid values are from 0 to 1023. 
+const uint16_t DIGIPOT_WIPER_POSITION = 512;
 
 //------------------------------------------------------------------------------
 // Analog pin number list for a sample.  Pins may be in any order and pin
@@ -842,7 +845,6 @@ void setup(void) {
   
   DPOT.begin();
   DPOT.readWiper();
-  
 
   if (WRITE_LED_PIN >= 0) {
     pinMode(WRITE_LED_PIN, OUTPUT);
@@ -852,11 +854,25 @@ void setup(void) {
   }
   Serial.begin(9600);
   while(!Serial) {}
+  Serial.println("--------------Initial Startup--------------");
 
   FillStack();
 
   // Read the first sample pin to init the ADC.
   analogRead(PIN_LIST[0]);
+
+    if(DIGIPOT_WIPER_POSITION > 1023)
+  {
+    Serial.println("[ERROR] Wiper Value beyond MAX5483 Range of 0-1023. Program Stopping.");
+    fatalBlink();
+  }
+
+
+  DPOT.setWiper(DIGIPOT_WIPER_POSITION);
+  DPOT.writeWiper();
+  Serial.print("Digipot wiper position set to ");
+  Serial.println(DPOT.readWiper());
+
 
 #if !ENABLE_DEDICATED_SPI
   Serial.println(F(
