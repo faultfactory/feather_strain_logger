@@ -3,11 +3,12 @@
 const size_t BLOCK_SIZE = 64;
 //------------------------------------------------------------------------------
 // First block of file.
-const size_t PIN_NUM_DIM = BLOCK_SIZE - 3*sizeof(uint32_t) - 2*sizeof(uint8_t);
+const size_t PIN_NUM_DIM = BLOCK_SIZE - 3*sizeof(uint32_t) - 1*sizeof(uint16_t) - 2*sizeof(uint8_t);
 struct metadata_t {
   uint32_t adcFrequency;           // ADC clock frequency
   uint32_t cpuFrequency;           // CPU clock frequency
   uint32_t sampleInterval;         // Sample interval in CPU cycles.
+  uint16_t digipotWiperPos;        // Wiper position for digital potentiometer
   uint8_t recordEightBits;         // Size of ADC values, nonzero for 8-bits.
   uint8_t pinCount;                // Number of analog pins in a sample.
   uint8_t pinNumber[PIN_NUM_DIM];  // List of pin numbers in a sample.

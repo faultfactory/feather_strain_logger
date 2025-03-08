@@ -458,6 +458,7 @@ void adcInit(metadata_t* meta) {
   // Sample interval in CPU clock ticks.
   meta->sampleInterval = ticks;
   meta->cpuFrequency = F_CPU;
+  meta->digipotWiperPos = DIGIPOT_WIPER_POSITION;
   float sampleRate = (float)meta->cpuFrequency/meta->sampleInterval;
   Serial.print(F("Sample pins:"));
   for (uint8_t i = 0; i < meta->pinCount; i++) {
@@ -473,6 +474,9 @@ void adcInit(metadata_t* meta) {
   Serial.println(sampleRate);
   Serial.print(F("Sample interval usec: "));
   Serial.println(1000000.0/sampleRate);
+  Serial.print(F("Digipot Wiper Position: "));
+  Serial.println(DIGIPOT_WIPER_POSITION);
+
 }
 //------------------------------------------------------------------------------
 // enable ADC and timer1 interrupts
@@ -513,7 +517,6 @@ void binaryToCsv() {
   // Use fast buffered print class.
   BufferedPrint<file_t, 64> bp(&csvFile);
   block_t binBuffer[FIFO_DIM];
-
   assert(sizeof(block_t) == sizeof(metadata_t));
   binFile.rewind();
   uint32_t tPct = millis();
@@ -538,6 +541,8 @@ void binaryToCsv() {
       float intervalMicros = 1.0e6*pm->sampleInterval/(float)pm->cpuFrequency;
       bp.print(intervalMicros, 4);
       bp.println(F(",usec"));
+      bp.print(F("Digipot Wiper Position,"));
+      bp.print(pm->digipotWiperPos);
       for (uint8_t i = 0; i < PIN_COUNT; i++) {
         if (i) {
           bp.print(',');
@@ -870,8 +875,9 @@ void setup(void) {
 
   DPOT.setWiper(DIGIPOT_WIPER_POSITION);
   DPOT.writeWiper();
+  DPOT.readWiper();
   Serial.print("Digipot wiper position set to ");
-  Serial.println(DPOT.readWiper());
+  Serial.println(DIGIPOT_WIPER_POSITION);
 
 
 #if !ENABLE_DEDICATED_SPI
