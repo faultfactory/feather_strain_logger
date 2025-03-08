@@ -229,6 +229,9 @@ uint8_t adcindex = 1;
 // Insure no timer events are missed.
 volatile bool timerError = false;
 volatile bool timerFlag = false;
+
+// Create a volatile bool to determine when to use serial
+volatile bool startedWithSerial = false;
 //------------------------------------------------------------------------------
 // ADC done interrupt.
 ISR(ADC_vect) {
@@ -542,7 +545,7 @@ void binaryToCsv() {
       bp.print(intervalMicros, 4);
       bp.println(F(",usec"));
       bp.print(F("Digipot Wiper Position,"));
-      bp.print(pm->digipotWiperPos);
+      bp.println(pm->digipotWiperPos);
       for (uint8_t i = 0; i < PIN_COUNT; i++) {
         if (i) {
           bp.print(',');
