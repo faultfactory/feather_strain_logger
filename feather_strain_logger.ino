@@ -62,6 +62,7 @@ MinimumSerial MinSerial;
 // overrun errors and logging continues.
 const int8_t ERROR_LED_PIN = 13;
 const int8_t WRITE_LED_PIN = 8;
+const int8_t STATE_LED_PIN = 9;
 // SD chip select pin.
 const uint8_t SD_CS_PIN = 4;
 const uint8_t DIGIPOT_CS_PIN = 10;
@@ -231,7 +232,7 @@ volatile bool timerError = false;
 volatile bool timerFlag = false;
 
 // Create a volatile bool to determine when to use serial
-volatile bool startedWithSerial = false;
+volatile bool standalone_mode = false;
 //------------------------------------------------------------------------------
 // ADC done interrupt.
 ISR(ADC_vect) {
@@ -617,14 +618,20 @@ void createBinFile() {
       p[0] = '0';
     }
   }
-  Serial.print(F("Opening: "));
-  Serial.println(binName);
+  if(!standalone_mode)
+  {
+    Serial.print(F("Opening: "));
+    Serial.println(binName);
+  }
   if (!binFile.open(binName, O_RDWR | O_CREAT)) {
     error("open binName failed");
   }
-  Serial.print(F("Allocating: "));
-  Serial.print(MAX_FILE_SIZE_MiB);
-  Serial.println(F(" MiB"));
+    if(!standalone_mode)
+  {
+    Serial.print(F("Allocating: "));
+    Serial.print(MAX_FILE_SIZE_MiB);
+    Serial.println(F(" MiB"));
+  }
   if (!binFile.preAllocate(MAX_FILE_SIZE)) {
     error("preAllocate failed");
   }
@@ -673,10 +680,12 @@ void logData() {
   fifoData = fifoBuffer;
   // Initialize all blocks to save ISR overhead.
   memset(fifoBuffer, 0, sizeof(fifoBuffer));
-
-  Serial.println(F("Logging - use switch to stop"));
-  // Wait for Serial Idle.
-  Serial.flush();
+  if(!standalone_mode)
+  {
+    Serial.println(F("Logging - use switch to stop"));
+    // Wait for Serial Idle.
+    Serial.flush();
+  }
   delay(10);
   digitalWrite(WRITE_LED_PIN, HIGH);
   t0 = millis();
@@ -741,26 +750,32 @@ void logData() {
   Serial.println();
   // Truncate file if recording stopped early.
   if (binFile.curPosition() < MAX_FILE_SIZE) {
-    Serial.println(F("Truncating file"));
-    Serial.flush();
+    if(!standalone_mode)
+    {
+      Serial.println(F("Truncating file"));
+      Serial.flush();
+    }
     if (!binFile.truncate()) {
       error("Can't truncate file");
     }
   }
   digitalWrite(WRITE_LED_PIN, LOW);
-  Serial.print(F("Max write latency usec: "));
-  Serial.println(maxLatencyUsec);
-  Serial.print(F("Record time sec: "));
-  Serial.println(0.001*(t1 - t0), 3);
-  Serial.print(F("Sample count: "));
-  Serial.println(count/PIN_COUNT);
-  Serial.print(F("Overruns: "));
-  Serial.println(overruns);
-  Serial.print(F("FIFO_DIM: "));
-  Serial.println(FIFO_DIM);
-  Serial.print(F("maxFifoUse: "));
-  Serial.println(maxFifoUse + 1);  // include ISR use.
-  Serial.println(F("Done"));
+  if(!standalone_mode)
+  {
+    Serial.print(F("Max write latency usec: "));
+    Serial.println(maxLatencyUsec);
+    Serial.print(F("Record time sec: "));
+    Serial.println(0.001*(t1 - t0), 3);
+    Serial.print(F("Sample count: "));
+    Serial.println(count/PIN_COUNT);
+    Serial.print(F("Overruns: "));
+    Serial.println(overruns);
+    Serial.print(F("FIFO_DIM: "));
+    Serial.println(FIFO_DIM);
+    Serial.print(F("maxFifoUse: "));
+    Serial.println(maxFifoUse + 1);  // include ISR use.
+    Serial.println(F("Done"));
+  }
 }
 //------------------------------------------------------------------------------
 void openBinFile() {
@@ -860,18 +875,49 @@ void setup(void) {
   if (ERROR_LED_PIN >= 0) {
     pinMode(ERROR_LED_PIN, OUTPUT);
   }
-  Serial.begin(9600);
-  while(!Serial) {}
-  Serial.println("--------------Initial Startup--------------");
+  if (STATE_LED_PIN >= 0) {
+    pinMode(STATE_LED_PIN, OUTPUT);
+  }
 
+  // Pick a time a time in the future to wait for a serial to become available.
+  unsigned long serial_wait_time_point = millis() + 5000;
+
+  Serial.begin(9600);
+
+  bool toggle = false;
+  while(!Serial && millis()<serial_wait_time_point) 
+  {
+    delay(50);
+    digitalWrite(STATE_LED_PIN,toggle);
+    toggle=!toggle;
+  }
+
+  if(!Serial)
+  {
+    Serial.end();
+    standalone_mode = true;
+    digitalWrite(STATE_LED_PIN,LOW);
+  }
+  else
+  {
+    standalone_mode = false;
+    digitalWrite(STATE_LED_PIN,HIGH);
+  }
+  if(!standalone_mode)
+  {
+    Serial.println("--------------Initial Startup--------------");
+  }
   FillStack();
 
   // Read the first sample pin to init the ADC.
   analogRead(PIN_LIST[0]);
 
-    if(DIGIPOT_WIPER_POSITION > 1023)
+  if(DIGIPOT_WIPER_POSITION > 1023)
   {
-    Serial.println("[ERROR] Wiper Value beyond MAX5483 Range of 0-1023. Program Stopping.");
+    if(!standalone_mode)
+    {
+      Serial.println("[ERROR] Wiper Value beyond MAX5483 Range of 0-1023. Program Stopping.");
+    }
     fatalBlink();
   }
 
@@ -879,14 +925,20 @@ void setup(void) {
   DPOT.setWiper(DIGIPOT_WIPER_POSITION);
   DPOT.writeWiper();
   DPOT.readWiper();
-  Serial.print("Digipot wiper position set to ");
-  Serial.println(DIGIPOT_WIPER_POSITION);
+  if(!standalone_mode)
+  {
+    Serial.print("Digipot wiper position set to ");
+    Serial.println(DIGIPOT_WIPER_POSITION);
+  }
 
 
 #if !ENABLE_DEDICATED_SPI
+if(!standalone_mode)
+{
   Serial.println(F(
     "\nFor best performance edit SdFatConfig.h\n"
     "and set ENABLE_DEDICATED_SPI nonzero"));
+}
 #endif  // !ENABLE_DEDICATED_SPI
   // Initialize SD.
   if (!sd.begin(SD_CONFIG)) {
@@ -913,54 +965,77 @@ pinMode(BUTTON_PIN, INPUT);
 }
 //------------------------------------------------------------------------------
 void loop(void) {
-  printUnusedStack();
-  // Read any Serial data.
-  clearSerialInput();
-  Serial.println();
-  Serial.println(F("type:"));
-  Serial.println(F("b - open existing bin file"));
-  Serial.println(F("c - convert file to csv"));
-  Serial.println(F("l - list files"));
-  Serial.println(F("p - print binary data to Serial"));
-  Serial.println(F("m - monitor A0 pin data"));
-  Serial.println(F("Without serial input, the device will wait for switch input."));
-
-
-  Serial.println(F("Waiting for switch to start logging"));
-  while((digitalRead(BUTTON_PIN) == HIGH) && !Serial.available()) {
-  }
-  if(digitalRead(BUTTON_PIN) == LOW) {
-    Serial.println(F("Button pressed. Logging started."));
-    createBinFile();
-    logData();
+  if(standalone_mode)
+  {
+    bool toggle = false;
+    unsigned long blink_duration_ms = 250; 
+    unsigned long next_toggle_time = millis() + blink_duration_ms;
+    while((digitalRead(BUTTON_PIN) == HIGH)) 
+    {
+      if(next_toggle_time < millis())
+      {
+        toggle=!toggle;
+        digitalWrite(STATE_LED_PIN,toggle);
+        next_toggle_time += blink_duration_ms;
+      }
+    }
+    if(digitalRead(BUTTON_PIN) == LOW) {
+      digitalWrite(STATE_LED_PIN,LOW);
+      createBinFile();
+      logData();
+    }
   }
   else
   {
-    char c = tolower(Serial.read());
-    Serial.println();
-    if (ERROR_LED_PIN >= 0) {
-      digitalWrite(ERROR_LED_PIN, LOW);
-    }
+    printUnusedStack();
     // Read any Serial data.
     clearSerialInput();
-    if (c == 'b') {
-      openBinFile();
-    } else if (c == 'c') {
-      if (createCsvFile()) {
-        binaryToCsv();
-      }
-    } else if (c == 'l') {
-      Serial.println(F("ls:"));
-      sd.ls(&Serial, LS_DATE | LS_SIZE);
-    } else if (c == 'p') {
-      printData();
-    } else if (c == 'm') {
-      monitorA0Pin();
-    } else if (c == 'r') {
+    Serial.println();
+    Serial.println(F("type:"));
+    Serial.println(F("b - open existing bin file"));
+    Serial.println(F("c - convert file to csv"));
+    Serial.println(F("l - list files"));
+    Serial.println(F("p - print binary data to Serial"));
+    Serial.println(F("m - monitor A0 pin data"));
+    Serial.println(F("Without serial input, the device will wait for switch input."));
+
+
+    Serial.println(F("Waiting for switch to start logging"));
+    while((digitalRead(BUTTON_PIN) == HIGH) && !Serial.available()) {
+    }
+    if(digitalRead(BUTTON_PIN) == LOW) {
+      Serial.println(F("Button pressed. Logging started."));
       createBinFile();
       logData();
-    } else {
-      Serial.println(F("Invalid entry"));
+    }
+    else
+    {
+      char c = tolower(Serial.read());
+      Serial.println();
+      if (ERROR_LED_PIN >= 0) {
+        digitalWrite(ERROR_LED_PIN, LOW);
+      }
+      // Read any Serial data.
+      clearSerialInput();
+      if (c == 'b') {
+        openBinFile();
+      } else if (c == 'c') {
+        if (createCsvFile()) {
+          binaryToCsv();
+        }
+      } else if (c == 'l') {
+        Serial.println(F("ls:"));
+        sd.ls(&Serial, LS_DATE | LS_SIZE);
+      } else if (c == 'p') {
+        printData();
+      } else if (c == 'm') {
+        monitorA0Pin();
+      } else if (c == 'r') {
+        createBinFile();
+        logData();
+      } else {
+        Serial.println(F("Invalid entry"));
+      }
     }
   }
 
