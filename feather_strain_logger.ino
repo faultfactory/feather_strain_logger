@@ -70,6 +70,7 @@ const uint8_t DIGIPOT_CS_PIN = 10;
 const int BUTTON_PIN = 3;
 
 //------------------------------------------------------------------------------
+#define ENABLE_DEDICATED_SPI 0
 // Setup Digipot for gain
 MAX5481 DPOT(DIGIPOT_CS_PIN);
 // ********GAIN VALUE FOR STRAIN GAGE AMPLIFIER *************
@@ -833,15 +834,68 @@ void printData() {
   Serial.println(F("Done"));
 }
 //------------------------------------------------------------------------------
-// Print data file to Serial
+// Print the status of pin A0 to the monitor
 void monitorA0Pin() {
-  Serial.println(F("Printing output of A0 ADC every 10ms"));
+  Serial.println(F("Printing output of A0 ADC every 100ms"));
   Serial.println(F("Send any serial input to stop"));
   while (!Serial.available())
   {
     Serial.println(analogRead(0));
+    delay(100);
   }
   Serial.println(F("Done"));
+}
+//------------------------------------------------------------------------------
+// Helper function for serial input handling from Arduino forums
+// https://forum.arduino.cc/t/serial-input-basics-updated/382007
+const byte numChars = 32;
+char receivedChars[numChars]; 
+
+void recvWithEndMarker() {
+    static byte ndx = 0;
+    char endMarker = '\n';
+    char rc;
+    
+    if (Serial.available() > 0) {
+        rc = Serial.read();
+
+        if (rc != endMarker) {
+            receivedChars[ndx] = rc;
+            ndx++;
+            if (ndx >= numChars) {
+                ndx = numChars - 1;
+            }
+        }
+        else {
+            receivedChars[ndx] = '\0'; // terminate the string
+            ndx = 0;
+        }
+    }
+}
+//------------------------------------------------------------------------------
+// Adjust the wiper and then print the output of A0 to the monitor
+void adjustWiperAndMonitor() {
+  Serial.println(F("Adjusting Wiper Position"));
+  Serial.println(F("Provide a value for wiper position between 0 and 1023."));
+  Serial.println(F("This program assumes your Serial Monitor is set to New Line."));
+  // While we wait for a value,
+  while (!Serial.available())
+  {
+    // do nothing
+  }
+  // use the happy helper function to grab the data. 
+  recvWithEndMarker();
+  uint16_t incoming_wiper_pos_request = atoi(receivedChars);
+  if(incoming_wiper_pos_request> 1023)
+  {
+    Serial.println("The input request did not make it to the input call within the proper range. Exiting to menu.");
+    return;
+  }
+  else
+  {
+    DPOT.setWiper(incoming_wiper_pos_request);
+    monitorA0Pin();
+  }
 }
 //------------------------------------------------------------------------------
 bool serialReadLine(char* str, size_t size) {
@@ -997,6 +1051,7 @@ void loop(void) {
     Serial.println(F("l - list files"));
     Serial.println(F("p - print binary data to Serial"));
     Serial.println(F("m - monitor A0 pin data"));
+    Serial.println(F("w - set wiper position"));
     Serial.println(F("Without serial input, the device will wait for switch input."));
 
 
