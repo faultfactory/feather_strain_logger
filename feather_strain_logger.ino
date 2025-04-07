@@ -1083,6 +1083,8 @@ void loop(void) {
         sd.ls(&Serial, LS_DATE | LS_SIZE);
       } else if (c == 'p') {
         printData();
+      } else if (c == 'w') {
+        adjustWiperAndMonitor();
       } else if (c == 'm') {
         monitorA0Pin();
       } else if (c == 'r') {
