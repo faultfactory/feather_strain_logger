@@ -894,6 +894,7 @@ void adjustWiperAndMonitor() {
   else
   {
     DPOT.setWiper(incoming_wiper_pos_request);
+    clearSerialInput();
     monitorA0Pin();
   }
 }
