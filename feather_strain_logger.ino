@@ -921,6 +921,12 @@ bool serialReadLine(char* str, size_t size) {
 //------------------------------------------------------------------------------
 void setup(void) {
   
+  // Do this to safely start spi interfaces.
+  pinMode(SD_CS_PIN,OUTPUT);
+  digitalWrite(SD_CS_PIN,HIGH);
+  pinMode(DIGIPOT_CS_PIN,OUTPUT);
+  digitalWrite(DIGIPOT_CS_PIN,HIGH);
+
   DPOT.begin();
   DPOT.readWiper();
 
